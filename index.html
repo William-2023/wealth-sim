@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="复利模拟器">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#f1f5f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+  <title>复利投资与财富积累模拟器</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --label: #334155;
+      --legend: #475569;
+      --divider: #f1f5f9;
+      --border: #e2e8f0;
+      --badge-bg: #f8fafc;
+      --badge-border: #cbd5e1;
+      --grid: #e8eef5;
+      --axis: #94a3b8;
+      --track: #e2e8f0;
+      --thumb: #ffffff;
+      --blue: #2563eb;
+      --curve: #3b82f6;
+      --area: rgba(59, 130, 246, 0.16);
+      --bench: #22c55e;
+      --green: #16a34a;
+      --purple: #8b5cf6;
+      --orange: #ea580c;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      -webkit-text-size-adjust: 100%;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0b1220;
+        --card: #161f32;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+        --label: #cbd5e1;
+        --legend: #cbd5e1;
+        --divider: #243049;
+        --border: #243049;
+        --badge-bg: #0f1829;
+        --badge-border: #37425c;
+        --grid: #243049;
+        --axis: #64748b;
+        --track: #37425c;
+        --thumb: #e2e8f0;
+        --blue: #3b82f6;
+        --curve: #60a5fa;
+        --area: rgba(96, 165, 250, 0.18);
+        --bench: #4ade80;
+        --green: #4ade80;
+        --purple: #a78bfa;
+        --orange: #fb923c;
+        --shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0b1220;
+      --card: #161f32;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --label: #cbd5e1;
+      --legend: #cbd5e1;
+      --divider: #243049;
+      --border: #243049;
+      --badge-bg: #0f1829;
+      --badge-border: #37425c;
+      --grid: #243049;
+      --axis: #64748b;
+      --track: #37425c;
+      --thumb: #e2e8f0;
+      --blue: #3b82f6;
+      --curve: #60a5fa;
+      --area: rgba(96, 165, 250, 0.18);
+      --bench: #4ade80;
+      --green: #4ade80;
+      --purple: #a78bfa;
+      --orange: #fb923c;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px 12px;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      background: var(--card);
+      max-width: 760px;
+      width: 100%;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 24px 20px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--divider);
+      gap: 4px;
+    }
+    .stat-col:not(:last-child) {
+      border-right: 1px solid var(--border);
+    }
+    .stat-val {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 4px;
+    }
+    .stat-val.primary { color: var(--text); }
+    .stat-val.daily { color: var(--purple); }
+    .stat-val.monthly { color: var(--blue); }
+    .stat-val.yearly { color: var(--orange); }
+    .stat-val.accent { color: var(--green); }
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .stat-sub {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+      opacity: 0.85;
+    }
+    .calc-note {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--divider);
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+    .calc-note strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+    .svg-container {
+      position: relative;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    svg {
+      display: block;
+      width: 100%;
+      height: 300px;
+    }
+    .grid-line { stroke: var(--grid); stroke-width: 1; }
+    .axis-text { fill: var(--axis); }
+    #benchLine { stroke: var(--bench); stroke-width: 2.5; }
+    #curvePath { stroke: var(--curve); }
+    #polyArea { fill: var(--area); }
+    #endPoint { fill: var(--curve); stroke: var(--card); }
+    .legend-row {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--legend);
+      font-weight: 500;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-color {
+      width: 14px;
+      height: 4px;
+      border-radius: 2px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 16px 0;
+    }
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 20px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .control-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--label);
+    }
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      flex: 1;
+      min-width: 0;
+      height: 30px;
+      margin: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background: var(--track);
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      margin-top: -9px;
+      border-radius: 50%;
+      background: var(--thumb);
+      border: 1px solid var(--badge-border);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    }
+    input[type=range]::-moz-range-track {
+      height: 6px;
+      border-radius: 999px;
+      background: var(--track);
+    }
+    input[type=range]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--badge-border);
+      border-radius: 50%;
+      background: var(--thumb);
+    }
+    input[type=range]:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 4px;
+      border-radius: 999px;
+    }
+    .val-badge {
+      min-width: 82px;
+      padding: 6px 8px;
+      background: var(--badge-bg);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      text-align: center;
+      border: 1px solid var(--badge-border);
+      font-variant-numeric: tabular-nums;
+    }
+    @media (max-width: 600px) {
+      .card { padding: 20px 16px; }
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        row-gap: 14px;
+      }
+      .stat-col:nth-child(2),
+      .stat-col:nth-child(4) { border-right: none; }
+      .stat-col:nth-child(5) {
+        grid-column: 1 / -1;
+        border-right: none;
+        padding-top: 4px;
+      }
+      .stat-val { font-size: 19px; }
+      svg { height: 240px; }
+      .controls-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <!-- 顶部统计 -->
+  <div class="stats-grid">
+    <div class="stat-col">
+      <div class="stat-val primary" id="startDisplay">$100,000</div>
+      <div class="stat-label">初始启动本金</div>
+    </div>
+    <div class="stat-col">
+      <div class="stat-val daily" id="dailyDisplay">$0</div>
+      <div class="stat-label">每日定投金额</div>
+    </div>
+    <div class="stat-col">
+      <div class="stat-val monthly" id="monthlyDisplay">$2,400</div>
+      <div class="stat-label">每月定投金额</div>
+    </div>
+    <div class="stat-col">
+      <div class="stat-val yearly" id="yearlyDisplay">$0</div>
+      <div class="stat-label">每年定投金额</div>
+    </div>
+    <div class="stat-col">
+      <div class="stat-val accent" id="projDisplay">$2.5M</div>
+      <div class="stat-label">期末实际购买力</div>
+      <div class="stat-sub" id="nominalDisplay">名义 $4.9M</div>
+    </div>
+  </div>
+
+  <!-- 原生SVG矢量图表 (完全不依赖外网JS) -->
+  <div class="svg-container">
+    <svg id="chartSvg" viewBox="0 0 700 300" preserveAspectRatio="none" aria-hidden="true">
+      <g id="gridLines"></g>
+      <line id="benchLine" />
+      <polygon id="polyArea" />
+      <path id="curvePath" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      <g id="axisTexts"></g>
+      <circle id="endPoint" r="5" stroke-width="2" />
+    </svg>
+    <div class="legend-row">
+      <div class="legend-item">
+        <div class="legend-color" style="background: var(--curve);"></div>
+        <span>预计实际资产总值</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: var(--bench);"></div>
+        <span>$2.5M 目标基准线</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 参数滑块 -->
+  <h3 class="section-title">调整复利测算参数 (按月复利 · 每期期初投入 · 剔除通胀后的实际收益)</h3>
+  <div class="controls-grid">
+    <div class="control-group">
+      <label class="control-label" for="startRange">初始本金 (Starting Capital)</label>
+      <div class="input-row">
+        <input type="range" id="startRange" min="0" max="1000000" step="10000" value="100000">
+        <span class="val-badge" id="startBadge">$100,000</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="dailyRange">每日定投 (Daily Contribution)</label>
+      <div class="input-row">
+        <input type="range" id="dailyRange" min="0" max="200" step="5" value="0">
+        <span class="val-badge" id="dailyBadge">$0</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="monthlyRange">每月定投 (Monthly Contribution)</label>
+      <div class="input-row">
+        <input type="range" id="monthlyRange" min="0" max="10000" step="100" value="2400">
+        <span class="val-badge" id="monthlyBadge">$2,400</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="yearlyRange">每年定投 (Annual Contribution)</label>
+      <div class="input-row">
+        <input type="range" id="yearlyRange" min="0" max="60000" step="500" value="0">
+        <span class="val-badge" id="yearlyBadge">$0</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="rateRange">年化收益率 (%)</label>
+      <div class="input-row">
+        <input type="range" id="rateRange" min="1" max="30" step="0.5" value="10">
+        <span class="val-badge" id="rateBadge">10%</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="inflationRange">年通胀率 (%)</label>
+      <div class="input-row">
+        <input type="range" id="inflationRange" min="0" max="10" step="0.1" value="3">
+        <span class="val-badge" id="inflationBadge">3%</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label" for="horizonRange">投资年限 (年)</label>
+      <div class="input-row">
+        <input type="range" id="horizonRange" min="1" max="60" step="1" value="25">
+        <span class="val-badge" id="horizonBadge">25 年</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="calc-note">
+    扣除通胀后的实际年化收益率：<strong id="realRateNote">6.80%</strong>。图表曲线与「期末实际购买力」均按此口径计算，即以今日购买力计价。<br>
+    定投金额假设随通胀同步上调，也就是说以今日购买力衡量，你每期投入的实际金额保持不变。
+  </div>
+</div>
+
+<script>
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  const startRange = document.getElementById('startRange');
+  const dailyRange = document.getElementById('dailyRange');
+  const monthlyRange = document.getElementById('monthlyRange');
+  const yearlyRange = document.getElementById('yearlyRange');
+  const rateRange = document.getElementById('rateRange');
+  const inflationRange = document.getElementById('inflationRange');
+  const horizonRange = document.getElementById('horizonRange');
+
+  const startBadge = document.getElementById('startBadge');
+  const dailyBadge = document.getElementById('dailyBadge');
+  const monthlyBadge = document.getElementById('monthlyBadge');
+  const yearlyBadge = document.getElementById('yearlyBadge');
+  const rateBadge = document.getElementById('rateBadge');
+  const inflationBadge = document.getElementById('inflationBadge');
+  const horizonBadge = document.getElementById('horizonBadge');
+
+  const startDisplay = document.getElementById('startDisplay');
+  const dailyDisplay = document.getElementById('dailyDisplay');
+  const monthlyDisplay = document.getElementById('monthlyDisplay');
+  const yearlyDisplay = document.getElementById('yearlyDisplay');
+  const projDisplay = document.getElementById('projDisplay');
+  const nominalDisplay = document.getElementById('nominalDisplay');
+  const realRateNote = document.getElementById('realRateNote');
+
+  const svg = document.getElementById('chartSvg');
+  const TARGET_BENCHMARK = 2500000;
+
+  // K 千 / M 百万 / B 十亿 / T 万亿
+  const UNITS = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+
+  function formatShort(val) {
+    for (const [size, suffix] of UNITS) {
+      if (val >= size) {
+        const v = (val / size).toFixed(1);
+        return `$${v.endsWith('.0') ? v.slice(0, -2) : v}${suffix}`;
+      }
+    }
+    return `$${Math.round(val).toLocaleString()}`;
+  }
+
+  function formatCurrency(val) {
+    return `$${Math.round(val).toLocaleString()}`;
+  }
+
+  function renderChart(dataPoints, years) {
+    // 按容器的真实像素尺寸设置 viewBox, 1 单位 = 1 px, 文字与线条不会被拉伸
+    const width = Math.max(260, Math.round(svg.clientWidth || 700));
+    const height = Math.max(180, Math.round(svg.clientHeight || 300));
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    const narrow = width < 460;
+    const fontSize = narrow ? 10 : 11;
+    const padLeft = narrow ? 44 : 65;
+    const padRight = narrow ? 10 : 20;
+    const padTop = 16;
+    const padBottom = 28;
+    const plotW = width - padLeft - padRight;
+    const plotH = height - padTop - padBottom;
+
+    const maxVal = Math.max(TARGET_BENCHMARK, ...dataPoints) * 1.15;
+
+    const gridG = document.getElementById('gridLines');
+    const axisG = document.getElementById('axisTexts');
+    gridG.innerHTML = '';
+    axisG.innerHTML = '';
+
+    // Y轴标尺 (5等分)
+    for (let i = 0; i <= 4; i++) {
+      const val = (maxVal / 4) * i;
+      const y = padTop + plotH - (val / maxVal) * plotH;
+
+      const line = document.createElementNS(SVG_NS, 'line');
+      line.setAttribute('class', 'grid-line');
+      line.setAttribute('x1', padLeft);
+      line.setAttribute('x2', width - padRight);
+      line.setAttribute('y1', y);
+      line.setAttribute('y2', y);
+      gridG.appendChild(line);
+
+      const text = document.createElementNS(SVG_NS, 'text');
+      text.setAttribute('class', 'axis-text');
+      text.setAttribute('x', padLeft - 8);
+      text.setAttribute('y', y + 4);
+      text.setAttribute('text-anchor', 'end');
+      text.setAttribute('font-size', fontSize);
+      text.textContent = formatShort(val);
+      axisG.appendChild(text);
+    }
+
+    // X轴时间标尺
+    const tickCount = narrow ? 4 : 5;
+    const stepYear = Math.max(1, Math.ceil(years / tickCount));
+    for (let yr = 0; yr <= years; yr += stepYear) {
+      const x = padLeft + (yr / years) * plotW;
+      const text = document.createElementNS(SVG_NS, 'text');
+      text.setAttribute('class', 'axis-text');
+      text.setAttribute('x', x);
+      text.setAttribute('y', height - 10);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', fontSize);
+      text.textContent = `${yr}年`;
+      axisG.appendChild(text);
+    }
+
+    // 基准线
+    const benchY = padTop + plotH - (TARGET_BENCHMARK / maxVal) * plotH;
+    const benchLine = document.getElementById('benchLine');
+    benchLine.setAttribute('x1', padLeft);
+    benchLine.setAttribute('x2', width - padRight);
+    benchLine.setAttribute('y1', benchY);
+    benchLine.setAttribute('y2', benchY);
+
+    // 主增长曲线与填充面积
+    let pathD = '';
+    let polyPoints = `${padLeft},${padTop + plotH}`;
+    let lastX = padLeft, lastY = padTop + plotH;
+
+    for (let yr = 0; yr <= years; yr++) {
+      const x = padLeft + (yr / years) * plotW;
+      const y = padTop + plotH - (dataPoints[yr] / maxVal) * plotH;
+      pathD += (yr === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+      polyPoints += ` ${x},${y}`;
+      lastX = x;
+      lastY = y;
+    }
+    polyPoints += ` ${lastX},${padTop + plotH}`;
+
+    document.getElementById('curvePath').setAttribute('d', pathD);
+    document.getElementById('polyArea').setAttribute('points', polyPoints);
+
+    const endPoint = document.getElementById('endPoint');
+    endPoint.setAttribute('cx', lastX);
+    endPoint.setAttribute('cy', lastY);
+  }
+
+  function update() {
+    const p0 = parseFloat(startRange.value);
+    const dailyPmt = parseFloat(dailyRange.value);
+    const monthlyPmt = parseFloat(monthlyRange.value);
+    const yearlyPmt = parseFloat(yearlyRange.value);
+    const rNominal = parseFloat(rateRange.value) / 100;
+    const inflation = parseFloat(inflationRange.value) / 100;
+    const years = parseInt(horizonRange.value, 10);
+
+    // 费雪关系: 实际收益率 = (1+名义) / (1+通胀) - 1, 而非简单相减
+    const r = (1 + rNominal) / (1 + inflation) - 1;
+
+    startBadge.textContent = formatCurrency(p0);
+    dailyBadge.textContent = formatCurrency(dailyPmt);
+    monthlyBadge.textContent = formatCurrency(monthlyPmt);
+    yearlyBadge.textContent = formatCurrency(yearlyPmt);
+    rateBadge.textContent = `${(rNominal * 100).toFixed(1).replace('.0', '')}%`;
+    inflationBadge.textContent = `${(inflation * 100).toFixed(1).replace('.0', '')}%`;
+    realRateNote.textContent = `${(r * 100).toFixed(2)}%`;
+    horizonBadge.textContent = `${years} 年`;
+
+    startDisplay.textContent = formatCurrency(p0);
+    dailyDisplay.textContent = formatCurrency(dailyPmt);
+    monthlyDisplay.textContent = formatCurrency(monthlyPmt);
+    yearlyDisplay.textContent = formatCurrency(yearlyPmt);
+
+    // 按月复利: 月利率取有效值 (1+r)^(1/12)-1, 因此 (1+rMonthly)^12 严格等于 (1+r),
+    // 月度现金流与年度现金流落在同一条时间轴上, 共用同一利率, 分别计算后相加即可。
+    // 日定投按 365/12 天汇总成月投入 (假设攒满一月再买入, 符合实际操作);
+    // 月投入于每月月初入账, 年投入于每年年初一次性入账
+    // (两者皆为期初年金 annuity due)。年投入不除以 12 —— 年初整笔投入平均比按月摊薄多
+    // 在市场里待半年, 7% / 25 年下约高 3%。
+    const dataPoints = [];
+    const rMonthly = Math.pow(1 + r, 1 / 12) - 1;
+    const pmtMonthly = monthlyPmt + dailyPmt * (365 / 12);
+
+    for (let yr = 0; yr <= years; yr++) {
+      let balance;
+      if (Math.abs(r) < 1e-12) {
+        balance = p0 + pmtMonthly * yr * 12 + yearlyPmt * yr;
+      } else {
+        const growth = Math.pow(1 + r, yr);
+        const fvMonthly = pmtMonthly * ((growth - 1) / rMonthly) * (1 + rMonthly);
+        const fvYearly = yearlyPmt * ((growth - 1) / r) * (1 + r);
+        balance = p0 * growth + fvMonthly + fvYearly;
+      }
+      dataPoints.push(balance);
+    }
+
+    const finalReal = dataPoints[dataPoints.length - 1];
+    projDisplay.textContent = formatShort(finalReal);
+    nominalDisplay.textContent = `名义 ${formatShort(finalReal * Math.pow(1 + inflation, years))}`;
+    renderChart(dataPoints, years);
+  }
+
+  [startRange, dailyRange, monthlyRange, yearlyRange, rateRange, inflationRange, horizonRange].forEach(el => {
+    el.addEventListener('input', update);
+    el.addEventListener('change', update);
+  });
+
+  // 旋转屏幕 / 改变窗口时重绘
+  window.addEventListener('resize', update);
+  window.addEventListener('orientationchange', () => setTimeout(update, 200));
+
+  update();
+
+  // 离线支持: 注册 Service Worker (仅在 https 或 localhost 下生效)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () { /* 离线功能不可用时静默忽略 */ });
+    });
+  }
+</script>
+
+</body>
+</html>
